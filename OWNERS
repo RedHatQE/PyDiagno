@@ -1,4 +1,27 @@
-approvers:
-  - <>
-reviewers:
-  - <>
+# This file lists the owners and maintainers of the PyDiagno project.
+# Each line is a file pattern followed by one or more owners.
+
+# MrQuality is the primary maintainer
+*       @MrQuality  # Primary maintainer
+
+# Other maintainers (not actively used at this time)
+# *       @primary-maintainer @secondary-maintainer
+
+# Order is important; the last matching pattern takes the most precedence.
+
+# Core components
+# /src/pydiagno/config.py         @config-specialist
+# /src/pydiagno/log_processor.py  @log-expert
+# /src/pydiagno/llm_integration.py @llm-specialist
+# /src/pydiagno/rag.py            @rag-expert
+# /src/pydiagno/report_generator.py @report-specialist
+# /src/pydiagno/automation.py     @automation-expert
+
+# Tests
+# /tests/                         @test-leader
+
+# Documentation
+# /docs/                          @docs-maintainer
+
+# CI/CD
+# /.github/                       @devops-specialist
