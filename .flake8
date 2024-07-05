@@ -1,11 +1,18 @@
 [flake8]
-select=M511
-
+max-line-length = 88
+extend-ignore = E203, W503
 exclude =
     doc,
+    __pycache__,
+    build,
+    dist,
     .tox,
     .git,
     .yml,
     Pipfile.*,
     docs/*,
     .cache/*
+    .venv
+max-complexity = 10
+
+
