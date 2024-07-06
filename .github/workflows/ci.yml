@@ -72,6 +72,8 @@ jobs:
     - name: Run Bandit
       run: poetry run bandit -r src -f custom
     - name: Run safety check
-      run: poetry run safety check
+      # Ignoring 70612 (CVE-2019-8341) as it's a false positive for Jinja2 >= 2.10.1
+      # Our project uses Jinja2 3.1.4 which is not affected by this vulnerability
+      run: poetry run safety check --ignore=70612
     - name: Check for dependency updates
       run: poetry show --outdated
