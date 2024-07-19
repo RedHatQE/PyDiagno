@@ -40,7 +40,7 @@ pydiagno = "pydiagno.plugin"
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py39']
 
 [tool.isort]
 profile = "black"
