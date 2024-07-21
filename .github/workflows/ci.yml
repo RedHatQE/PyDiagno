@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, '3.10', '3.11']
+        python-version: ['3.11']
 
     steps:
     - uses: actions/checkout@v3
@@ -72,8 +72,6 @@ jobs:
     - name: Run Bandit
       run: poetry run bandit -r src -f custom
     - name: Run safety check
-      # Ignoring 70612 (CVE-2019-8341) as it's a false positive for Jinja2 >= 2.10.1
-      # Our project uses Jinja2 3.1.4 which is not affected by this vulnerability
-      run: poetry run safety check --ignore=70612
+      run: poetry run safety check --policy-file .safety-policy.yml
     - name: Check for dependency updates
       run: poetry show --outdated

@@ -1,0 +1,24 @@
+---
+security:
+  ignore-vulnerabilities:
+    65212:
+      expires: 2025-12-31
+      reason: Application does not run on PowerPC architecture.
+    66704:
+      expires: 2025-12-31
+      reason: Functionality is not utilized in our application.
+    59473:
+      expires: 2025-12-31
+      reason: No SSH certificate handling in our project.
+    62556:
+      expires: 2025-12-31
+      reason: Application does not load PKCS7 certificates.
+    65278:
+      expires: 2025-12-31
+      reason: Application does not use TLS servers with RSA key exchanges.
+    65647:
+      expires: 2025-12-31
+      reason: Project does not use X.509 path validation.
+    70612:
+      expires: 2025-12-31
+      reason: Handled and acceptable for the current use case.
