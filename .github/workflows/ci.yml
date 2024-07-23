@@ -71,7 +71,9 @@ jobs:
         poetry install
     - name: Run Bandit
       run: poetry run bandit -r src -f custom
+    - name: Update safety
+      run: pip install --upgrade safety
     - name: Run safety check
-      run: poetry run safety check --policy-file .safety-policy.yml
+      run: poetry run safety check --policy-file ${{ github.workspace }}/.safety-policy.yml --full-report --debug
     - name: Check for dependency updates
       run: poetry show --outdated
