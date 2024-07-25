@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Generator
+
 import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
@@ -25,12 +26,13 @@ def pytest_configure(config: Config) -> None:
     if config.getoption("pydiagno"):
         # TODO: Initialize PyDiagno here if needed
         pass
+    return None
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(
     item: Item, call: pytest.CallInfo[None]
-) -> Optional[TestReport]:
+) -> Generator[None, None, TestReport]:
     """
     Extend test reports with PyDiagno analysis results.
 
@@ -38,16 +40,19 @@ def pytest_runtest_makereport(
         item: Test item being executed.
         call: Result of test execution.
 
-    Returns:
-        Optional[TestReport]: The test report, potentially modified with PyDiagno analysis.
+    Yields:
+        None
     """
     outcome = yield
-    report = outcome.get_result()
+    if outcome is not None and hasattr(outcome, "get_result"):
+        report = outcome.get_result()
+    else:
+        report = TestReport.from_item_and_call(item, call)
 
-    if report.when == "call":
+    if isinstance(report, TestReport) and report.when == "call":
         marker = item.get_closest_marker("pydiagno")
         if marker:
-            # TODO: Here we'll add the logic for PyDiagno analysis in the future
+            # TODO: Add logic for PyDiagno analysis here in the future
             pass
 
     return report
