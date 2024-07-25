@@ -1,13 +1,16 @@
 # tests/test_plugin.py
 import time
-import pytest
 from unittest.mock import Mock
-from _pytest.config.argparsing import Parser
-from _pytest.terminal import TerminalReporter
+
+import pytest
 from _pytest.config import Config
+from _pytest.config.argparsing import Parser
 from _pytest.nodes import Item
 from _pytest.reports import TestReport
+from _pytest.terminal import TerminalReporter
+
 from pydiagno import plugin
+
 
 def test_pytest_addoption() -> None:
     """Test that pytest_addoption adds the PyDiagno option correctly."""
