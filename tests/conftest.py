@@ -1,10 +1,10 @@
 # tests/conftest.py
 
+from typing import Any, Dict
 from unittest.mock import Mock
 
 import pytest
 from _pytest.config import Config
-from typing import Dict, Any
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ def sample_config() -> Dict[str, Any]:
             "cache_size": 2048,
             "default_format": "onnx",
             "supported_formats": ["onnx", "guff", "ggml"],
-            "model_config": [
+            "model_configurations": [
                 {
                     "name": "primary",
                     "format": "onnx",

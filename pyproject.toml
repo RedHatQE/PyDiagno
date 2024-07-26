@@ -11,6 +11,7 @@ packages = [
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
 pytest = "^8.3.1"
+types-pyyaml = "^6.0.12.20240724"
 
 
 [tool.pytest.ini_options]
@@ -53,5 +54,15 @@ profile = "black"
 line_length = 88
 
 [tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
 ignore_missing_imports = true
 strict = true
+plugins = [
+    "pydantic.mypy"
+]
+
+[[tool.mypy.overrides]]
+module = "pydiagno.config"
+implicit_reexport = true

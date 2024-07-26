@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class SSHConfig(BaseModel):
@@ -14,46 +14,109 @@ class SSHConfig(BaseModel):
 
 class LLMDeployment(BaseModel):
     name: str = Field(..., description="Unique name for this LLM deployment")
-    provider: str = Field(..., description="LLM provider (e.g., huggingface, openai, anthropic, local, in-cluster, ssh)")
-    model: str = Field(..., description="Specific model to use")
-    api_key: Optional[str] = Field(default="", description="API key for the LLM provider (if applicable)")
-    model_path: Optional[str] = Field(default="", description="Path to the local model file (for local provider)")
-    ssh: Optional[SSHConfig] = Field(default=None, description="SSH configuration for remote LLM access")
+    provider: str = Field(..., description="LLM provider")
+    model: Optional[str] = Field(None, description="Specific model to use")
+    api_key: Optional[str] = Field(
+        default="", description="API key for the LLM provider (if applicable)"
+    )
+    model_path: Optional[str] = Field(
+        None, description="Path to the local model file (for local provider)"
+    )
+    ssh: Optional[SSHConfig] = Field(
+        default=None, description="SSH configuration for remote LLM access"
+    )
+
+    @field_validator("provider", mode="before")
+    @classmethod
+    def validate_provider(cls: Any, v: str) -> str:
+        allowed_providers = {
+            "huggingface",
+            "openai",
+            "anthropic",
+            "local",
+            "in-cluster",
+            "ssh",
+        }
+        if v not in allowed_providers:
+            raise ValueError(
+                f"Invalid provider. Must be one of: {', '.join(allowed_providers)}"
+            )
+        return v
+
+    @field_validator("model_path", mode="before")
+    @classmethod
+    def validate_model_path(cls: Any, v: Optional[str], info: Any) -> Optional[str]:
+        if info.data["provider"] == "local" and not v:
+            raise ValueError("model_path is required for local provider")
+        return v
+
+    @field_validator("ssh", mode="before")
+    @classmethod
+    def validate_ssh_config(
+        cls: Any, v: Optional[SSHConfig], info: Any
+    ) -> Optional[SSHConfig]:
+        if info.data["provider"] == "ssh" and not v:
+            raise ValueError("SSH configuration is required for SSH provider")
+        return v
 
 
 class LLMConfig(BaseModel):
-    deployments: List[LLMDeployment] = Field(default_factory=list, description="List of LLM deployments")
-    selection_strategy: str = Field(default="priority", description="Strategy for selecting LLM")
+    deployments: List[LLMDeployment] = Field(
+        default_factory=list, description="List of LLM deployments"
+    )
+    selection_strategy: str = Field(
+        default="priority", description="Strategy for selecting LLM"
+    )
 
 
 class ModelConfig(BaseModel):
-    name: str = Field(..., description="Name of the model (should match an LLM deployment name)")
+    name: str = Field(
+        ..., description="Name of the model (should match an LLM deployment name)"
+    )
     format: str = Field(..., description="Format of the model")
-    quantization: bool = Field(default=False, description="Whether to enable model quantization")
+    quantization: bool = Field(
+        default=False, description="Whether to enable model quantization"
+    )
     pruning: bool = Field(default=False, description="Whether to enable model pruning")
 
 
 class ModelAbstractionConfig(BaseModel):
     cache_size: int = Field(default=2048, description="Size of model cache in MB")
     default_format: str = Field(default="onnx", description="Default model format")
-    supported_formats: List[str] = Field(default=["onnx", "guff", "ggml"], description="List of supported model formats")
-    model_config: List[ModelConfig] = Field(default_factory=list, description="Configuration for specific models")
+    supported_formats: List[str] = Field(
+        default=["onnx", "guff", "ggml"], description="List of supported model formats"
+    )
+    model_configurations: List[ModelConfig] = Field(
+        default_factory=list, description="Configuration for specific models"
+    )
+
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class LogProcessingConfig(BaseModel):
-    additional_log_paths: List[str] = Field(default_factory=list, description="List of paths to additional log files")
+    additional_log_paths: List[str] = Field(
+        default_factory=list, description="List of paths to additional log files"
+    )
     max_log_size: int = Field(default=1048576, description="Maximum log size in bytes")
-    ignored_patterns: List[str] = Field(default_factory=list, description="Regex patterns to ignore in logs")
+    ignored_patterns: List[str] = Field(
+        default_factory=list, description="Regex patterns to ignore in logs"
+    )
 
 
 class AnalysisConfig(BaseModel):
-    confidence_threshold: float = Field(default=0.8, description="Minimum confidence score for results")
-    max_iterations: int = Field(default=5, description="Maximum number of analysis iterations (0 for unlimited)")
+    confidence_threshold: float = Field(
+        default=0.8, description="Minimum confidence score for results"
+    )
+    max_iterations: int = Field(
+        default=5, description="Maximum number of analysis iterations (0 for unlimited)"
+    )
 
 
 class RAGDatabaseConfig(BaseModel):
     type: str = Field(default="sqlite", description="Database type for RAG")
-    path: str = Field(default="pydiagno_rag.db", description="Database path or connection string")
+    path: str = Field(
+        default="pydiagno_rag.db", description="Database path or connection string"
+    )
 
 
 class RAGConfig(BaseModel):
@@ -64,17 +127,25 @@ class RAGConfig(BaseModel):
 
 class ReportingConfig(BaseModel):
     format: str = Field(default="json", description="Report output format")
-    output_path: str = Field(default="./pydiagno_reports", description="Path for report output")
+    output_path: str = Field(
+        default="./pydiagno_reports", description="Path for report output"
+    )
 
 
 class PluginConfig(BaseModel):
-    enabled: List[str] = Field(default_factory=list, description="List of enabled plugin names")
-    auto_discovery: bool = Field(default=True, description="Automatically discover and load compatible plugins")
+    enabled: List[str] = Field(
+        default_factory=list, description="List of enabled plugin names"
+    )
+    auto_discovery: bool = Field(
+        default=True, description="Automatically discover and load compatible plugins"
+    )
 
 
 class DataMaskingConfig(BaseModel):
     enabled: bool = Field(default=True, description="Whether to mask sensitive data")
-    patterns: List[str] = Field(default_factory=list, description="Regex patterns to mask")
+    patterns: List[str] = Field(
+        default_factory=list, description="Regex patterns to mask"
+    )
 
 
 class EncryptionConfig(BaseModel):
@@ -88,17 +159,25 @@ class SecurityConfig(BaseModel):
 
 
 class DUTConnectionConfig(BaseModel):
-    hostname: str = Field(default="localhost", description="Hostname for DUT connection")
+    hostname: str = Field(
+        default="localhost", description="Hostname for DUT connection"
+    )
     port: int = Field(default=22, description="Port for DUT connection")
     username: str = Field(default="", description="Username for DUT connection")
     key_file: str = Field(default="", description="Path to SSH key file for DUT")
 
 
 class DUTConfig(BaseModel):
-    communication_protocol: str = Field(default="ssh", description="Communication protocol for DUT")
+    communication_protocol: str = Field(
+        default="ssh", description="Communication protocol for DUT"
+    )
     connection: DUTConnectionConfig = Field(default_factory=DUTConnectionConfig)
-    timeout: int = Field(default=30, description="Timeout for DUT operations in seconds")
-    max_retries: int = Field(default=3, description="Maximum number of retries for failed DUT operations")
+    timeout: int = Field(
+        default=30, description="Timeout for DUT operations in seconds"
+    )
+    max_retries: int = Field(
+        default=3, description="Maximum number of retries for failed DUT operations"
+    )
 
 
 class EventBusConnectionConfig(BaseModel):
@@ -110,8 +189,12 @@ class EventBusConnectionConfig(BaseModel):
 
 class EventBusConfig(BaseModel):
     type: str = Field(default="rabbitmq", description="Type of event bus")
-    connection: EventBusConnectionConfig = Field(default_factory=EventBusConnectionConfig)
-    queue_size: int = Field(default=1000, description="Maximum number of messages in the queue")
+    connection: EventBusConnectionConfig = Field(
+        default_factory=EventBusConnectionConfig
+    )
+    queue_size: int = Field(
+        default=1000, description="Maximum number of messages in the queue"
+    )
 
 
 class ResourceManagerConfig(BaseModel):
@@ -121,21 +204,35 @@ class ResourceManagerConfig(BaseModel):
 
 
 class KubernetesResourcesConfig(BaseModel):
-    requests: Dict[str, str] = Field(default_factory=lambda: {"cpu": "500m", "memory": "1Gi"})
-    limits: Dict[str, str] = Field(default_factory=lambda: {"cpu": "2", "memory": "4Gi"})
+    requests: Dict[str, str] = Field(
+        default_factory=lambda: {"cpu": "500m", "memory": "1Gi"}
+    )
+    limits: Dict[str, str] = Field(
+        default_factory=lambda: {"cpu": "2", "memory": "4Gi"}
+    )
 
 
 class KubernetesAutoScalingConfig(BaseModel):
-    enabled: bool = Field(default=True, description="Whether to use Horizontal Pod Autoscaler")
+    enabled: bool = Field(
+        default=True, description="Whether to use Horizontal Pod Autoscaler"
+    )
     min_replicas: int = Field(default=1, description="Minimum number of replicas")
     max_replicas: int = Field(default=5, description="Maximum number of replicas")
 
 
 class KubernetesConfig(BaseModel):
-    enabled: bool = Field(default=False, description="Whether to use Kubernetes-specific features")
-    namespace: str = Field(default="pydiagno", description="Kubernetes namespace for PyDiagno resources")
-    resources: KubernetesResourcesConfig = Field(default_factory=KubernetesResourcesConfig)
-    auto_scaling: KubernetesAutoScalingConfig = Field(default_factory=KubernetesAutoScalingConfig)
+    enabled: bool = Field(
+        default=False, description="Whether to use Kubernetes-specific features"
+    )
+    namespace: str = Field(
+        default="pydiagno", description="Kubernetes namespace for PyDiagno resources"
+    )
+    resources: KubernetesResourcesConfig = Field(
+        default_factory=KubernetesResourcesConfig
+    )
+    auto_scaling: KubernetesAutoScalingConfig = Field(
+        default_factory=KubernetesAutoScalingConfig
+    )
 
 
 class PerformanceCachingConfig(BaseModel):
@@ -144,19 +241,30 @@ class PerformanceCachingConfig(BaseModel):
 
 
 class PerformanceConfig(BaseModel):
-    parallel_analysis: bool = Field(default=True, description="Whether to perform analysis in parallel")
-    batch_size: int = Field(default=10, description="Number of items to process in a batch")
+    parallel_analysis: bool = Field(
+        default=True, description="Whether to perform analysis in parallel"
+    )
+    batch_size: int = Field(
+        default=10, description="Number of items to process in a batch"
+    )
     caching: PerformanceCachingConfig = Field(default_factory=PerformanceCachingConfig)
 
 
 class MonitoringMetricsConfig(BaseModel):
     enabled: bool = Field(default=True, description="Whether to collect metrics")
-    push_gateway: str = Field(default="http://localhost:9091", description="Prometheus push gateway URL")
+    push_gateway: str = Field(
+        default="http://localhost:9091", description="Prometheus push gateway URL"
+    )
 
 
 class MonitoringTracingConfig(BaseModel):
-    enabled: bool = Field(default=False, description="Whether to use distributed tracing")
-    jaeger_endpoint: str = Field(default="http://localhost:14268/api/traces", description="Jaeger collector endpoint")
+    enabled: bool = Field(
+        default=False, description="Whether to use distributed tracing"
+    )
+    jaeger_endpoint: str = Field(
+        default="http://localhost:14268/api/traces",
+        description="Jaeger collector endpoint",
+    )
 
 
 class MonitoringConfig(BaseModel):
@@ -167,7 +275,10 @@ class MonitoringConfig(BaseModel):
 
 class PyDiagnoConfig(BaseModel):
     llm: LLMConfig = Field(default_factory=LLMConfig)
-    model_abstraction: ModelAbstractionConfig = Field(default_factory=ModelAbstractionConfig)
+    model_abstraction: ModelAbstractionConfig = Field(
+        default_factory=ModelAbstractionConfig
+    )
+
     log_processing: LogProcessingConfig = Field(default_factory=LogProcessingConfig)
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
     rag: RAGConfig = Field(default_factory=RAGConfig)
@@ -176,10 +287,14 @@ class PyDiagnoConfig(BaseModel):
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     dut: DUTConfig = Field(default_factory=DUTConfig)
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
-    resource_manager: ResourceManagerConfig = Field(default_factory=ResourceManagerConfig)
+    resource_manager: ResourceManagerConfig = Field(
+        default_factory=ResourceManagerConfig
+    )
     kubernetes: KubernetesConfig = Field(default_factory=KubernetesConfig)
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
+
+    model_config = ConfigDict(protected_namespaces=())
 
 
 def load_config(config_path: str = "pydiagno_config.yaml") -> PyDiagnoConfig:
@@ -202,4 +317,4 @@ def load_config(config_path: str = "pydiagno_config.yaml") -> PyDiagnoConfig:
 
 
 # Global configuration object
-config = load_config()
+config: PyDiagnoConfig = load_config()
