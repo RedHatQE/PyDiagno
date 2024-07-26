@@ -44,6 +44,13 @@ report:
 
 For more detailed configuration options, see our [configuration documentation](docs/configuration.md).
 
+## Project Structure
+
+- `src/pydiagno/`: Contains the main plugin code
+  - `plugin.py`: Implements the pytest hooks for PyDiagno
+- `tests/`: Contains the test files
+- `pyproject.toml`: Defines the project dependencies and configuration
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for more details.
