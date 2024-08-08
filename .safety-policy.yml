@@ -22,3 +22,6 @@ security:
     70612:
       expires: 2025-12-31
       reason: Handled and acceptable for the current use case.
+    71924:
+      expires: 2025-12-31
+      reason: Acceptable for the current use case.
