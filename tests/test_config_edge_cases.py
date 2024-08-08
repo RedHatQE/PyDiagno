@@ -1,12 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
-from pydiagno.config import (LLMDeployment,
-                             ModelAbstractionConfig,
-                             PyDiagnoConfig,
-                             RAGConfig,
-                             LLMConfig
-                             )
+from pydiagno.config import (
+    LLMConfig,
+    LLMDeployment,
+    ModelAbstractionConfig,
+    PyDiagnoConfig,
+    RAGConfig,
+)
 
 
 def test_invalid_llm_provider() -> None:
@@ -30,22 +31,23 @@ def test_missing_ssh_config_for_ssh_provider() -> None:
 def test_invalid_model_format() -> None:
     with pytest.raises(ValidationError) as excinfo:
         ModelAbstractionConfig(default_format="invalid_format")
-    assert ("Invalid model format. Must be one of: onnx, guff, ggml" in
-            str(excinfo.value))
+    assert "Invalid model format. Must be one of: onnx, guff, ggml" in str(
+        excinfo.value
+    )
 
 
 def test_negative_cache_size() -> None:
     with pytest.raises(ValidationError) as excinfo:
         ModelAbstractionConfig(cache_size=-1)
-    assert ("Cache size must be non-negative" in
-            str(excinfo.value))
+    assert "Cache size must be non-negative" in str(excinfo.value)
 
 
 def test_invalid_rag_database_type() -> None:
     with pytest.raises(ValidationError) as excinfo:
         RAGConfig(database={"type": "invalid_type"})
-    assert ("Invalid database type. Must be either 'sqlite' or 'postgresql'"
-            in str(excinfo.value))
+    assert "Invalid database type. Must be either 'sqlite' or 'postgresql'" in str(
+        excinfo.value
+    )
 
 
 def test_invalid_log_level() -> None:
