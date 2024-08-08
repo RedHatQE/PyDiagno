@@ -1,0 +1,157 @@
+# PyDiagno Configuration
+
+# LLM Configuration
+# This section configures multiple LLM deployments, allowing for flexible analysis capabilities.
+llm:
+  deployments:
+    - name: "primary"  # Unique name for this LLM deployment
+      provider: "huggingface"  # LLM provider. Options: huggingface, openai, anthropic, local, in-cluster, ssh
+      model: "gpt2"  # Specific model to use
+      api_key: ""  # API key for the LLM provider (if applicable)
+    - name: "secondary"
+      provider: "openai"
+      model: "gpt-3.5-turbo"
+      api_key: ""
+    - name: "local"
+      provider: "local"
+      model_path: "/path/to/local/model"  # Path to the local model file
+    - name: "ssh_llm"
+      provider: "ssh"
+      model: "remote_model_name"
+      ssh:
+        hostname: "remote_host"
+        port: 22
+        username: "user"
+        key_file: "/path/to/ssh/key"
+  selection_strategy: "priority"  # Strategy for selecting LLM. Options: priority, round-robin, capability-based
+
+# Abstraction Layer for Model Loading and Inference
+# This section configures how models are loaded and managed across different formats and LLMs.
+model_abstraction:
+  cache_size: 2048  # Size of model cache in MB
+  default_format: "onnx"  # Default model format
+  supported_formats: ["onnx", "guff", "ggml"]  # List of supported model formats
+  model_config:
+    - name: "primary"  # Should match an LLM deployment name
+      format: "onnx"
+      quantization: true  # Enable model quantization for this model
+      pruning: false  # Enable model pruning for this model
+    - name: "secondary"
+      format: "guff"
+      quantization: false
+      pruning: true
+    - name: "local"
+      format: "ggml"
+      quantization: true
+      pruning: false
+
+# Log Processing Configuration
+# Controls how PyDiagno handles additional log files beyond pytest logs.
+log_processing:
+  additional_log_paths: []  # List of paths to additional log files to process
+  max_log_size: 1048576  # Maximum size of additional log files to process, in bytes (default: 1MB)
+  ignored_patterns: []  # List of regex patterns to ignore in additional logs
+
+# Analysis Configuration
+# Defines parameters for PyDiagno's analysis process.
+analysis:
+  confidence_threshold: 0.8  # Minimum confidence score required for PyDiagno to report a result
+  max_iterations: 5  # Maximum number of analysis iterations. Set to 0 for unlimited iterations
+
+# RAG Configuration
+# Configures the RAG feature for enhancing LLM capabilities with historical data.
+rag:
+  enabled: false  # Whether to use RAG to enhance analysis with historical data
+  database:
+    type: "sqlite"  # The type of database to use for RAG. Options: sqlite, postgresql
+    path: "pydiagno_rag.db"  # Database file path for SQLite, or connection string for PostgreSQL
+  cache_size: 1024  # Size of RAG cache in MB
+
+# Reporting Configuration
+# Controls how PyDiagno generates and stores analysis reports.
+reporting:
+  format: "json"  # The format for output reports. Options: json, yaml, text
+  output_path: "./pydiagno_reports"  # Directory where PyDiagno will save generated reports
+
+# Plugin Configuration
+# Specifies which plugins should be active and how they're discovered.
+plugins:
+  enabled: []  # List of plugin names to enable. Empty list means no plugins are active
+  auto_discovery: true  # Automatically discover and load compatible plugins
+
+# Security Configuration
+# Ensures sensitive information is protected in logs and reports.
+security:
+  data_masking:
+    enabled: true  # Whether to mask sensitive data in logs and reports
+    patterns: []  # List of regex patterns to identify and mask sensitive data
+  encryption:
+    enabled: true  # Whether to encrypt sensitive data
+    algorithm: "AES-256"  # Encryption algorithm to use
+
+# DUT (Device Under Test) Configuration
+# Configures how PyDiagno communicates with the Device Under Test.
+dut:
+  communication_protocol: "ssh"  # Options: ssh, rest, custom
+  connection:
+    hostname: "localhost"
+    port: 22
+    username: ""
+    key_file: ""  # Path to SSH key file, if applicable
+  timeout: 30  # Timeout for DUT operations in seconds
+  max_retries: 3  # Maximum number of retries for failed DUT operations
+
+# Event Bus Configuration
+# Configures the message broker for inter-component communication.
+event_bus:
+  type: "rabbitmq"  # Options: rabbitmq, kafka, redis
+  connection:
+    host: "localhost"
+    port: 5672
+    username: ""
+    password: ""
+  queue_size: 1000  # Maximum number of messages in the queue
+
+# Resource Manager Settings
+# Controls resource allocation and limits for PyDiagno.
+resource_manager:
+  cpu_limit: 80  # Maximum CPU usage percentage
+  memory_limit: 8192  # Maximum memory usage in MB
+  storage_limit: 10240  # Maximum storage usage in MB
+
+# Kubernetes Deployment Options
+# Configures deployment options when running in a Kubernetes cluster.
+kubernetes:
+  enabled: false  # Whether to use Kubernetes-specific features
+  namespace: "pydiagno"  # Kubernetes namespace for PyDiagno resources
+  resources:
+    requests:
+      cpu: "500m"  # Minimum CPU request
+      memory: "1Gi"  # Minimum memory request
+    limits:
+      cpu: "2"  # Maximum CPU limit
+      memory: "4Gi"  # Maximum memory limit
+  auto_scaling:
+    enabled: true  # Whether to use Horizontal Pod Autoscaler
+    min_replicas: 1  # Minimum number of replicas
+    max_replicas: 5  # Maximum number of replicas
+
+# Performance Optimization Settings
+# Fine-tunes PyDiagno's performance characteristics.
+performance:
+  parallel_analysis: true  # Whether to perform analysis in parallel
+  batch_size: 10  # Number of items to process in a batch
+  caching:
+    enabled: true  # Whether to use caching
+    ttl: 3600  # Cache time-to-live in seconds
+
+# Monitoring and Logging Configuration
+# Configures observability and debugging options.
+monitoring:
+  log_level: "INFO"  # Logging level. Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  metrics:
+    enabled: true  # Whether to collect metrics
+    push_gateway: "http://localhost:9091"  # Prometheus push gateway URL
+  tracing:
+    enabled: false  # Whether to use distributed tracing
+    jaeger_endpoint: "http://localhost:14268/api/traces"  # Jaeger collector endpoint

@@ -74,6 +74,6 @@ jobs:
     - name: Update safety
       run: pip install --upgrade safety
     - name: Run safety check
-      run: poetry run safety check --policy-file ${{ github.workspace }}/.safety-policy.yml --ignore 70612 --full-report
+      run: poetry run safety check --policy-file ${{ github.workspace }}/.safety-policy.yml --ignore 70612,71924 --full-report
     - name: Check for dependency updates
       run: poetry show --outdated

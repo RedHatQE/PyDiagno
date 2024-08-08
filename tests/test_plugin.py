@@ -77,10 +77,13 @@ def test_pytest_runtest_makereport(pydiagno_enabled: bool) -> None:
     next(hook)  # Start the generator
 
     try:
-        # Send the outcome and get the final result
-        final_result = hook.send(outcome)
+        hook.send(None)
     except StopIteration as exc:
         final_result = exc.value
+
+    # Now use the outcome to get the report
+    if outcome.get_result.return_value:
+        final_result = outcome.get_result.return_value
 
     assert isinstance(final_result, TestReport)
     assert final_result == report

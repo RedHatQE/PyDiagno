@@ -26,23 +26,66 @@ pip install pydiagno
 
 ## Configuration
 
-PyDiagno uses a YAML configuration file. Here's a basic example:
+PyDiagno uses a YAML configuration file for customization. By default, it looks for `pydiagno_config.yaml` in the project root directory. Sensitive data should be stored in a `.env` file.
+For a full list of configuration options, please refer to the `config.py` file in the `src/pydiagno` directory.
+
+
+### Key Configuration Sections:
+
+1. **LLM Configuration**: Define multiple LLM deployments (local, remote, SSH-based).
+2. **Model Abstraction**: Manage model loading, caching, and format support.
+3. **Log Processing**: Configure additional log handling beyond pytest.
+4. **Analysis Settings**: Set confidence thresholds and iteration limits.
+5. **RAG Configuration**: Enable and configure Retrieval-Augmented Generation.
+6. **Reporting Options**: Customize analysis report format and location.
+7. **Plugin Management**: Enable and discover plugins.
+8. **Security Settings**: Configure data masking and encryption.
+9. **DUT Configuration**: Set up Device Under Test communication.
+10. **Event Bus Settings**: Configure inter-component communication.
+11. **Resource Management**: Set resource usage limits.
+12. **Kubernetes Options**: Configure deployment in Kubernetes environments.
+13. **Performance Tuning**: Optimize parallel processing and caching.
+14. **Monitoring and Logging**: Set up observability and debugging options.
+
+### Example Configuration:
 
 ```yaml
 llm:
-  model: "huggingface/model-name"
-  api_key: "your-api-key"
+  deployments:
+    - name: "primary"
+      provider: "openai"
+      model: "gpt-3.5-turbo"
+      api_key: "your-api-key-here"
+    - name: "local"
+      provider: "local"
+      model_path: "/path/to/local/model"
+
+model_abstraction:
+  cache_size: 2048
+  default_format: "onnx"
+  model_config:
+    - name: "primary"
+      format: "onnx"
+      quantization: true
+
+analysis:
+  confidence_threshold: 0.8
+  max_iterations: 5
 
 rag:
   enabled: true
-  data_path: "./historical_data"
+  database:
+    type: "sqlite"
+    path: "pydiagno_rag.db"
 
-report:
+reporting:
   format: "json"
   output_path: "./pydiagno_reports"
+
+# Additional sections can be configured as needed
 ```
 
-For more detailed configuration options, see our [configuration documentation](docs/configuration.md).
+For a full list of configuration options and their default values, please refer to the `config.py` file in the `src/pydiagno` directory.
 
 ## Project Structure
 
