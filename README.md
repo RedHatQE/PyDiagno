@@ -26,7 +26,9 @@ pip install pydiagno
 
 ## Configuration
 
-PyDiagno uses a YAML configuration file for customization. By default, it looks for `pydiagno_config.yaml` in the project root directory.
+PyDiagno uses a YAML configuration file for customization. By default, it looks for `pydiagno_config.yaml` in the project root directory. Sensitive data should be stored in a `.env` file.
+For a full list of configuration options, please refer to the `config.py` file in the `src/pydiagno` directory.
+
 
 ### Key Configuration Sections:
 

@@ -48,6 +48,17 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 * 4 spaces for indentation rather than tabs
 * You can try running `black` for style unification
 
+## Testing
+
+* Write unit tests for all new functionality.
+* Ensure all tests pass before submitting a pull request.
+* When adding new configuration options, add corresponding edge case tests in `test_config_edge_cases.py`.
+
+## Configuration
+
+* When adding new configuration options, update the `PyDiagnoConfig` class in `config.py`.
+* For sensitive configuration options, use `SecretStr` and update the `.env.example` file.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under its Apache 2.0 License.
