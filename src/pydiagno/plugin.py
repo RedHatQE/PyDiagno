@@ -7,6 +7,9 @@ from _pytest.nodes import Item
 from _pytest.reports import TestReport
 from _pytest.terminal import TerminalReporter
 
+from pydiagno.config import PyDiagnoConfig, load_config
+
+config: PyDiagnoConfig = load_config()
 
 def pytest_addoption(parser: Parser) -> None:
     """Add PyDiagno-specific command line options to pytest."""
