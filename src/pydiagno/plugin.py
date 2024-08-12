@@ -1,5 +1,5 @@
 from typing import Generator, Optional
-
+import logging
 import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
@@ -8,6 +8,10 @@ from _pytest.reports import TestReport
 from _pytest.terminal import TerminalReporter
 
 from pydiagno.config import PyDiagnoConfig, load_config
+from pydiagno.exceptions import PyDiagnoConfigError, PyDiagnoAnalysisError
+
+logger = logging.getLogger(__name__)
+
 
 def pytest_addoption(parser: Parser) -> None:
     """Add PyDiagno-specific command line options to pytest."""
