@@ -78,10 +78,30 @@ def pytest_configure(config: Config) -> None:
     """Configure PyDiagno plugin."""
     config.addinivalue_line("markers", "pydiagno: mark test for PyDiagno analysis")
     if config.getoption("pydiagno"):
-        pydiagno_config = load_config()
+        config_path = config.getoption("pydiagno_config")
+        pydiagno_config = load_config(config_path) if config_path else load_config()
+
+        # Override configuration with command line options
+        if config.getoption("pydiagno_log_level"):
+            pydiagno_config.monitoring.log_level = config.getoption(
+                "pydiagno_log_level")
+        if config.getoption("pydiagno_confidence_threshold") is not None:
+            pydiagno_config.analysis.confidence_threshold = config.getoption(
+                "pydiagno_confidence_threshold")
+        if config.getoption("pydiagno_max_iterations") is not None:
+            pydiagno_config.analysis.max_iterations = config.getoption(
+                "pydiagno_max_iterations")
+        if config.getoption("pydiagno_rag_enabled") is not None:
+            pydiagno_config.rag.enabled = config.getoption("pydiagno_rag_enabled")
+        if config.getoption("pydiagno_report_format"):
+            pydiagno_config.reporting.format = config.getoption(
+                "pydiagno_report_format")
+        if config.getoption("pydiagno_report_output"):
+            pydiagno_config.reporting.output_path = config.getoption(
+                "pydiagno_report_output")
+
         config.pydiagno_config = pydiagno_config
         # TODO: Initialize PyDiagno here if needed
-        pass
     return None
 
 
