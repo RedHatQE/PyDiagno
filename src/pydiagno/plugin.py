@@ -126,15 +126,21 @@ def perform_pydiagno_analysis(item: Item, report: TestReport, config: PyDiagnoCo
 
     Returns:
         Optional[dict]: Analysis result or None if analysis couldn't be performed.
+
+    Raises:
+        PyDiagnoAnalysisError: If an error occurs during analysis.
     """
     # TODO: Implement actual PyDiagno analysis logic here
     # This is a placeholder implementation
-    analysis_result = {
-        "confidence": config.analysis.confidence_threshold,
-        "iterations": config.analysis.max_iterations,
-        "result": "Placeholder analysis result"
-    }
-    return analysis_result
+    try:
+        analysis_result = {
+            "confidence": config.analysis.confidence_threshold,
+            "iterations": config.analysis.max_iterations,
+            "result": "Placeholder analysis result"
+        }
+        return analysis_result
+    except Exception as e:
+        raise PyDiagnoAnalysisError(f"Error during PyDiagno analysis: {e}")
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
