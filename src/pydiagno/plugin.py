@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, Optional
 
 import pytest
 from _pytest.config import Config
@@ -105,6 +105,29 @@ def pytest_configure(config: Config) -> None:
     return None
 
 
+def perform_pydiagno_analysis(item: Item, report: TestReport, config: PyDiagnoConfig) \
+        -> Optional[dict]:
+    """
+    Perform PyDiagno analysis on a test item.
+
+    Args:
+        item: Test item being analyzed.
+        report: Test report for the item.
+        config: PyDiagno configuration.
+
+    Returns:
+        Optional[dict]: Analysis result or None if analysis couldn't be performed.
+    """
+    # TODO: Implement actual PyDiagno analysis logic here
+    # This is a placeholder implementation
+    analysis_result = {
+        "confidence": config.analysis.confidence_threshold,
+        "iterations": config.analysis.max_iterations,
+        "result": "Placeholder analysis result"
+    }
+    return analysis_result
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(
     item: Item, call: pytest.CallInfo[None]
@@ -125,11 +148,26 @@ def pytest_runtest_makereport(
     else:
         report = TestReport.from_item_and_call(item, call)
 
-    if isinstance(report, TestReport) and report.when == "call":
-        marker = item.get_closest_marker("pydiagno")
-        if marker:
-            # TODO: Add logic for PyDiagno analysis here in the future
-            pass
+    # Check if PyDiagno is enabled globally or for this specific test
+    pydiagno_enabled = item.config.getoption("pydiagno") or item.get_closest_marker(
+        "pydiagno")
+
+    if isinstance(report, TestReport) and report.when == "call"  and pydiagno_enabled:
+        if pydiagno_enabled:
+            # Retrieve PyDiagno configuration
+            pydiagno_config = getattr(item.config, 'pydiagno_config', None)
+
+            if pydiagno_config:
+                # Perform PyDiagno analysis
+                analysis_result = perform_pydiagno_analysis(item, report,
+                                                            pydiagno_config)
+
+                # Attach analysis result to the report
+                report.pydiagno_result = analysis_result
+            else:
+                # Log a warning if PyDiagno is enabled but configuration is missing
+                item.warn(pytest.PytestWarning(
+                    "PyDiagno is enabled, but configuration is missing."))
 
     return report
 
