@@ -228,3 +228,10 @@ def pytest_terminal_summary(
         else:
             terminalreporter.write_line("PyDiagno configuration not found.")
         # TODO: Add more detailed summary based on the new configuration options
+
+def pytest_exception_interact(node: Item, call: pytest.CallInfo, report: pytest.TestReport) -> None:
+    """Handle exceptions during test execution."""
+    if isinstance(call.excinfo.value, PyDiagnoConfigError):
+        report.longrepr = f"PyDiagno Configuration Error: {call.excinfo.value}"
+    elif isinstance(call.excinfo.value, PyDiagnoAnalysisError):
+        report.longrepr = f"PyDiagno Analysis Error: {call.excinfo.value}"
