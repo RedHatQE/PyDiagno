@@ -74,11 +74,15 @@ def pytest_terminal_summary(
     """
     if config.getoption("pydiagno"):
         # TODO: Here we'll add the summary of PyDiagno analysis in the future
-        terminalreporter.write_sep("-", "PyDiagno Analysis Summary")
-        terminalreporter.write_line(
-            f"Analysis confidence threshold: "
-            f"{config.analysis.confidence_threshold:.2f}")
-        terminalreporter.write_line(
-            f"Maximum analysis iterations: "
-            f"{config.analysis.max_iterations:d}")
+        pydiagno_config = getattr(config, 'pydiagno_config', None)
+        if pydiagno_config:
+            terminalreporter.write_sep("-", "PyDiagno Analysis Summary")
+            terminalreporter.write_line(
+                f"Analysis confidence threshold: "
+                f"{config.analysis.confidence_threshold:.2f}")
+            terminalreporter.write_line(
+                f"Maximum analysis iterations: "
+                f"{config.analysis.max_iterations:d}")
+        else:
+            terminalreporter.write_line("PyDiagno configuration not found.")
         # TODO: Add more detailed summary based on the new configuration options
