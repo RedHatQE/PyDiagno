@@ -9,8 +9,6 @@ from _pytest.terminal import TerminalReporter
 
 from pydiagno.config import PyDiagnoConfig, load_config
 
-config: PyDiagnoConfig = load_config()
-
 def pytest_addoption(parser: Parser) -> None:
     """Add PyDiagno-specific command line options to pytest."""
     group = parser.getgroup("pydiagno")
@@ -27,6 +25,8 @@ def pytest_configure(config: Config) -> None:
     """Configure PyDiagno plugin."""
     config.addinivalue_line("markers", "pydiagno: mark test for PyDiagno analysis")
     if config.getoption("pydiagno"):
+        pydiagno_config = load_config()
+        config.pydiagno_config = pydiagno_config
         # TODO: Initialize PyDiagno here if needed
         pass
     return None
