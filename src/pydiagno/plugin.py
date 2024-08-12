@@ -194,6 +194,15 @@ def pytest_terminal_summary(
             terminalreporter.write_line(
                 f"Maximum analysis iterations: "
                 f"{config.analysis.max_iterations:d}")
+
+            for report in terminalreporter.stats.get('passed',
+                                                     []) + terminalreporter.stats.get(
+                    'failed', []):
+                if hasattr(report, 'pydiagno_result'):
+                    terminalreporter.write_line(f"Test: {report.nodeid}")
+                    terminalreporter.write_line(
+                        f"PyDiagno Result: {report.pydiagno_result['result']}")
+                    terminalreporter.write_line("")
         else:
             terminalreporter.write_line("PyDiagno configuration not found.")
         # TODO: Add more detailed summary based on the new configuration options
