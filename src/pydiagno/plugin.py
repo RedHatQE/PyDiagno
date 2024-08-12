@@ -167,16 +167,18 @@ def pytest_runtest_makereport(
             pydiagno_config = getattr(item.config, 'pydiagno_config', None)
 
             if pydiagno_config:
-                # Perform PyDiagno analysis
-                analysis_result = perform_pydiagno_analysis(item, report,
-                                                            pydiagno_config)
 
-                # Attach analysis result to the report
-                report.pydiagno_result = analysis_result
+                try:
+                    analysis_result = perform_pydiagno_analysis(item, report,
+                                                                pydiagno_config)
+                    report.pydiagno_result = analysis_result
+                except PyDiagnoAnalysisError as e:
+                    logger.error(f"PyDiagno analysis failed for {item.nodeid}: {e}")
+                    report.pydiagno_error = str(e)
             else:
                 # Log a warning if PyDiagno is enabled but configuration is missing
-                item.warn(pytest.PytestWarning(
-                    "PyDiagno is enabled, but configuration is missing."))
+                logger.warning(f"PyDiagno is enabled for {item.nodeid}, "
+                               f"but configuration is missing.")
 
     return report
 
