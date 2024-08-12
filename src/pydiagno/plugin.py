@@ -220,6 +220,11 @@ def pytest_terminal_summary(
                     terminalreporter.write_line(
                         f"PyDiagno Result: {report.pydiagno_result['result']}")
                     terminalreporter.write_line("")
+                elif hasattr(report, 'pydiagno_error'):
+                    terminalreporter.write_line(f"Test: {report.nodeid}")
+                    terminalreporter.write_line(
+                        f"PyDiagno Error: {report.pydiagno_error}")
+                    terminalreporter.write_line("")
         else:
             terminalreporter.write_line("PyDiagno configuration not found.")
         # TODO: Add more detailed summary based on the new configuration options
