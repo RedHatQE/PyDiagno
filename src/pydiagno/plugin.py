@@ -19,6 +19,59 @@ def pytest_addoption(parser: Parser) -> None:
         default=False,
         help="Enable PyDiagno analysis",
     )
+    group.addoption(
+        "--pydiagno-config",
+        action="store",
+        dest="pydiagno_config",
+        default=None,
+        help="Path to custom PyDiagno configuration file",
+    )
+    group.addoption(
+        "--pydiagno-log-level",
+        action="store",
+        dest="pydiagno_log_level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default=None,
+        help="Set the log level for PyDiagno",
+    )
+    group.addoption(
+        "--pydiagno-confidence-threshold",
+        action="store",
+        dest="pydiagno_confidence_threshold",
+        type=float,
+        default=None,
+        help="Set the confidence threshold for PyDiagno analysis",
+    )
+    group.addoption(
+        "--pydiagno-max-iterations",
+        action="store",
+        dest="pydiagno_max_iterations",
+        type=int,
+        default=None,
+        help="Set the maximum number of iterations for PyDiagno analysis",
+    )
+    group.addoption(
+        "--pydiagno-rag-enabled",
+        action="store_true",
+        dest="pydiagno_rag_enabled",
+        default=None,
+        help="Enable Retrieval-Augmented Generation (RAG) feature",
+    )
+    group.addoption(
+        "--pydiagno-report-format",
+        action="store",
+        dest="pydiagno_report_format",
+        choices=["json", "yaml", "text"],
+        default=None,
+        help="Set the format for PyDiagno reports",
+    )
+    group.addoption(
+        "--pydiagno-report-output",
+        action="store",
+        dest="pydiagno_report_output",
+        default=None,
+        help="Set the output path for PyDiagno reports",
+    )
 
 
 def pytest_configure(config: Config) -> None:
