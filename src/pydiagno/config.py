@@ -10,6 +10,8 @@ import yaml
 from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pydiagno.exceptions import PyDiagnoConfigError
+
 T = TypeVar("T")
 
 # Configure logging
@@ -479,7 +481,42 @@ class PyDiagnoConfig(BaseSettings):
         env_file_encoding="utf-8",
         env_prefix="PYDIAGNO_",
         protected_namespaces=(),
+        extra="allow",
     )
+
+    @field_validator("monitoring")
+    @classmethod
+    def validate_monitoring(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(v, dict) and "log_level" in v:
+            valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+            if v["log_level"] not in valid_levels:
+                raise ValueError(
+                    f"Invalid log level. Must be one of: {', '.join(valid_levels)}"
+                )
+        return v
+
+    @field_validator("analysis")
+    @classmethod
+    def validate_analysis(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(v, dict):
+            if "confidence_threshold" in v:
+                if v["confidence_threshold"] < 0 or v["confidence_threshold"] > 1:
+                    raise ValueError("Confidence threshold must be between 0 and 1")
+            if "max_iterations" in v:
+                if v["max_iterations"] < 0:
+                    raise ValueError("Max iterations must be non-negative")
+        return v
+
+    @field_validator("reporting")
+    @classmethod
+    def validate_reporting(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(v, dict) and "format" in v:
+            valid_formats = ["json", "yaml", "text"]
+            if v["format"] not in valid_formats:
+                raise ValueError(
+                    f"Invalid report format. Must be one of: {', '.join(valid_formats)}"
+                )
+        return v
 
 
 def load_config(config_path: str = "pydiagno_config.yaml") -> PyDiagnoConfig:
@@ -518,14 +555,10 @@ def load_config(config_path: str = "pydiagno_config.yaml") -> PyDiagnoConfig:
 
     except yaml.YAMLError as e:
         logger.error(f"Error parsing YAML configuration: {e}")
-        raise ValueError(f"Invalid YAML in configuration file: {e}")
-
-    except ValueError as e:
-        logger.error(f"Error in configuration data: {e}")
-        raise
+        raise PyDiagnoConfigError(f"Invalid YAML in configuration file: {e}")
     except Exception as e:
         logger.error(f"Unexpected error loading configuration: {e}")
-        raise ValueError(f"Failed to load configuration: {e}")
+        raise PyDiagnoConfigError(f"Failed to load configuration: {e}")
 
 
 # Global configuration object
