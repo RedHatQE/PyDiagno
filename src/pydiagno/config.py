@@ -20,6 +20,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+ALLOWED_REPORT_FORMATS = {"json", "pdf", "html"}
+VALID_LOG_LEVEL = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 def sleep_and_retry(func: Callable[..., T]) -> Callable[..., T]:
     @wraps(func)
@@ -183,6 +185,19 @@ class AnalysisConfig(BaseModel):
         default=5, description="Maximum number of analysis iterations (0 for unlimited)"
     )
 
+    @field_validator("confidence_threshold")
+    @classmethod
+    def validate_confidence_threshold(cls, v: float) -> float:
+        if not (0 <= v <= 1):
+            raise ValueError("confidence_threshold must be between 0 and 1")
+        return v
+
+    @field_validator("max_iterations")
+    @classmethod
+    def validate_max_iterations(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("max_iterations must be non-negative")
+        return v
 
 class RAGDatabaseConfig(BaseModel):
     """Configuration for RAG database."""
@@ -217,6 +232,15 @@ class ReportingConfig(BaseModel):
     output_path: str = Field(
         default="./pydiagno_reports", description="Path for report output"
     )
+
+    @field_validator("format")
+    @classmethod
+    def validate_format(cls, v: str) -> str:
+        if v not in ALLOWED_REPORT_FORMATS:
+            raise ValueError(
+                f"Invalid report format. Must be one of: "
+                f"{', '.join(sorted(ALLOWED_REPORT_FORMATS))}")
+        return v
 
 
 class PluginConfig(BaseModel):
@@ -408,10 +432,9 @@ class MonitoringConfig(BaseModel):
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls: Any, v: str) -> str:
-        valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-        if v not in valid_levels:
+        if v not in VALID_LOG_LEVEL:
             raise ValueError(
-                f"Invalid log level. Must be one of: {', '.join(valid_levels)}"
+                f"Invalid log level. Must be one of: {', '.join(VALID_LOG_LEVEL)}"
             )
         return v
 
@@ -488,10 +511,9 @@ class PyDiagnoConfig(BaseSettings):
     @classmethod
     def validate_monitoring(cls, v: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(v, dict) and "log_level" in v:
-            valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-            if v["log_level"] not in valid_levels:
+            if v["log_level"] not in VALID_LOG_LEVEL:
                 raise ValueError(
-                    f"Invalid log level. Must be one of: {', '.join(valid_levels)}"
+                    f"Invalid log level. Must be one of: {', '.join(VALID_LOG_LEVEL)}"
                 )
         return v
 
@@ -511,10 +533,10 @@ class PyDiagnoConfig(BaseSettings):
     @classmethod
     def validate_reporting(cls, v: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(v, dict) and "format" in v:
-            valid_formats = ["json", "yaml", "text"]
-            if v["format"] not in valid_formats:
+            if v["format"] not in ALLOWED_REPORT_FORMATS:
                 raise ValueError(
-                    f"Invalid report format. Must be one of: {', '.join(valid_formats)}"
+                    f"Invalid report format. Must be one of: "
+                    f"{', '.join(sorted(ALLOWED_REPORT_FORMATS))}"
                 )
         return v
 

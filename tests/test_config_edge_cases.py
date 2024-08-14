@@ -10,8 +10,8 @@ from pydiagno.config import (
     PyDiagnoConfig,
     RAGConfig,
     ReportingConfig,
+    ALLOWED_REPORT_FORMATS
 )
-
 
 def test_invalid_llm_provider() -> None:
     with pytest.raises(ValidationError) as excinfo:
@@ -72,9 +72,14 @@ def test_negative_max_iterations() -> None:
 
 
 def test_invalid_report_format() -> None:
-    with pytest.raises(ValidationError) as excinfo:
+    allowed_formats_str = ", ".join(sorted(ALLOWED_REPORT_FORMATS))
+    expected_error_message = \
+        f"Invalid report format. Must be one of: {allowed_formats_str}"
+
+    match_pattern = f".*{expected_error_message}.*"
+
+    with pytest.raises(ValidationError, match=match_pattern):
         ReportingConfig(format="invalid_format")
-    assert "Input should be 'json', 'yaml' or 'text'" in str(excinfo.value)
 
 
 def test_invalid_kubernetes_resource_values() -> None:
