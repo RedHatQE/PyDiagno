@@ -9,6 +9,7 @@ These tests cover various aspects of the configuration, including:
 - Full configuration loading and validation
 - Handling of invalid configurations
 - Default configuration values
+- Configuration file loading
 
 The tests use the `sample_config` fixture defined in conftest.py.
 """
@@ -21,6 +22,8 @@ import yaml
 from pydantic import ValidationError
 
 from pydiagno.config import (
+    ALLOWED_REPORT_FORMATS,
+    VALID_LOG_LEVEL,
     KubernetesConfig,
     LLMConfig,
     ModelAbstractionConfig,
@@ -28,6 +31,39 @@ from pydiagno.config import (
     RAGConfig,
     load_config,
 )
+from pydiagno.exceptions import PyDiagnoConfigError
+
+
+def test_load_config(tmp_path: Path, sample_config: Dict[str, Any]) -> None:
+    config_path = tmp_path / "test_config.yaml"
+    with open(config_path, "w") as f:
+        yaml.dump(sample_config, f)
+
+    loaded_config = load_config(str(config_path))
+    assert isinstance(loaded_config, PyDiagnoConfig)
+    assert len(loaded_config.llm.deployments) == 3
+    assert loaded_config.model_abstraction.cache_size == 2048
+    assert loaded_config.rag.enabled is True
+    assert loaded_config.kubernetes.namespace == "test-namespace"
+
+
+def test_load_nonexistent_config() -> None:
+    config = load_config("nonexistent_config.yaml")
+    assert isinstance(config, PyDiagnoConfig)
+    # Check that it's using default values
+    assert len(config.llm.deployments) == 0
+    assert config.model_abstraction.cache_size == 2048
+    assert config.rag.enabled is False
+    assert config.kubernetes.enabled is False
+
+
+def test_load_invalid_yaml_config(tmp_path: Path) -> None:
+    config_path = tmp_path / "invalid_config.yaml"
+    with open(config_path, "w") as f:
+        f.write("invalid: yaml: content")
+
+    with pytest.raises(PyDiagnoConfigError):
+        load_config(str(config_path))
 
 
 def test_llm_config(sample_config: Dict[str, Any]) -> None:
@@ -65,19 +101,6 @@ def test_kubernetes_config(sample_config: Dict[str, Any]) -> None:
     assert k8s_config.namespace == "test-namespace"
     assert k8s_config.resources.requests["cpu"] == "500m"
     assert k8s_config.auto_scaling.min_replicas == 2
-
-
-def test_load_config(tmp_path: Path, sample_config: Dict[str, Any]) -> None:
-    config_path = tmp_path / "test_config.yaml"
-    with open(config_path, "w") as f:
-        yaml.dump(sample_config, f)
-
-    loaded_config = load_config(str(config_path))
-    assert isinstance(loaded_config, PyDiagnoConfig)
-    assert len(loaded_config.llm.deployments) == 3
-    assert loaded_config.model_abstraction.cache_size == 2048
-    assert loaded_config.rag.enabled is True
-    assert loaded_config.kubernetes.namespace == "test-namespace"
 
 
 def test_full_config(sample_config: Dict[str, Any]) -> None:
@@ -130,9 +153,47 @@ def test_default_config() -> None:
     assert default_config.kubernetes.enabled is False
 
 
-def test_load_nonexistent_config() -> None:
-    config = load_config("nonexistent_config.yaml")
-    assert isinstance(config, PyDiagnoConfig)
-    # Check that it's using default values
-    assert len(config.llm.deployments) == 0
-    assert config.model_abstraction.cache_size == 2048
+def test_config_field_validators() -> None:
+
+    expected_log_level_error = (
+        f"Invalid log level. Must be one of: {', '.join(VALID_LOG_LEVEL)}"
+    )
+    expected_confidence_threshold_error = "confidence_threshold must be between 0 and 1"
+    allowed_formats_str = ", ".join(sorted(ALLOWED_REPORT_FORMATS))
+    expected_report_format_error = (
+        f"Invalid report format. Must be one of: {allowed_formats_str}"
+    )
+
+    with pytest.raises(ValidationError, match=expected_log_level_error):
+        PyDiagnoConfig(monitoring={"log_level": "INVALID"})
+
+    with pytest.raises(ValidationError, match=expected_confidence_threshold_error):
+        PyDiagnoConfig(analysis={"confidence_threshold": 2.0})
+
+    with pytest.raises(ValidationError, match="max_iterations must be non-negative"):
+        PyDiagnoConfig(analysis={"max_iterations": -1})
+
+    with pytest.raises(ValidationError, match=expected_report_format_error):
+        PyDiagnoConfig(reporting={"format": "invalid_format"})
+
+
+def test_nested_config_validation() -> None:
+    with pytest.raises(ValidationError):
+        PyDiagnoConfig(
+            llm={
+                "deployments": [
+                    {
+                        "name": "invalid",
+                        "provider": "openai",
+                        "model": "gpt-4",
+                        "api_key": "test-key",
+                        "ssh": {
+                            "hostname": "test.com",
+                            "port": "invalid_port",  # Should be an integer
+                            "username": "user",
+                            "key_file": "/path/to/key",
+                        },
+                    }
+                ]
+            }
+        )

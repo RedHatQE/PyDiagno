@@ -10,6 +10,8 @@ import yaml
 from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pydiagno.exceptions import PyDiagnoConfigError
+
 T = TypeVar("T")
 
 # Configure logging
@@ -17,6 +19,12 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+ALLOWED_REPORT_FORMATS = {"json", "pdf", "html"}
+VALID_LOG_LEVEL = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+VALID_LLM_PROCESSING_ENV = ["cpu", "memory"]
+VALID_LLM_FORMATS = ["onnx", "guff", "ggml"]
+SUPPORTED_DATABASES = ["sqlite", "postgresql"]
 
 
 def sleep_and_retry(func: Callable[..., T]) -> Callable[..., T]:
@@ -136,7 +144,7 @@ class ModelAbstractionConfig(BaseModel):
     cache_size: int = Field(default=2048, description="Size of model cache in MB")
     default_format: str = Field(default="onnx", description="Default model format")
     supported_formats: List[str] = Field(
-        default=["onnx", "guff", "ggml"], description="List of supported model formats"
+        default=VALID_LLM_FORMATS, description="List of supported model formats"
     )
     model_configurations: List[ModelConfig] = Field(
         default_factory=list, description="Configuration for specific models"
@@ -147,8 +155,11 @@ class ModelAbstractionConfig(BaseModel):
     @field_validator("default_format")
     @classmethod
     def validate_default_format(cls: Any, v: str) -> str:
-        if v not in ["onnx", "guff", "ggml"]:
-            raise ValueError("Invalid model format. Must be one of: onnx, guff, ggml")
+        if v not in VALID_LLM_FORMATS:
+            raise ValueError(
+                f"Invalid model format. Must be one of: "
+                f"{','.join(VALID_LLM_FORMATS)}"
+            )
         return v
 
     @field_validator("cache_size")
@@ -181,6 +192,20 @@ class AnalysisConfig(BaseModel):
         default=5, description="Maximum number of analysis iterations (0 for unlimited)"
     )
 
+    @field_validator("confidence_threshold")
+    @classmethod
+    def validate_confidence_threshold(cls, v: float) -> float:
+        if not (0 <= v <= 1):
+            raise ValueError("confidence_threshold must be between 0 and 1")
+        return v
+
+    @field_validator("max_iterations")
+    @classmethod
+    def validate_max_iterations(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("max_iterations must be non-negative")
+        return v
+
 
 class RAGDatabaseConfig(BaseModel):
     """Configuration for RAG database."""
@@ -193,7 +218,7 @@ class RAGDatabaseConfig(BaseModel):
     @field_validator("type")
     @classmethod
     def validate_database_type(cls: Any, v: str) -> str:
-        if v not in ["sqlite", "postgresql"]:
+        if v not in SUPPORTED_DATABASES:
             raise ValueError(
                 "Invalid database type. Must be either 'sqlite' or 'postgresql'"
             )
@@ -215,6 +240,16 @@ class ReportingConfig(BaseModel):
     output_path: str = Field(
         default="./pydiagno_reports", description="Path for report output"
     )
+
+    @field_validator("format")
+    @classmethod
+    def validate_format(cls, v: str) -> str:
+        if v not in ALLOWED_REPORT_FORMATS:
+            raise ValueError(
+                f"Invalid report format. Must be one of: "
+                f"{', '.join(sorted(ALLOWED_REPORT_FORMATS))}"
+            )
+        return v
 
 
 class PluginConfig(BaseModel):
@@ -322,7 +357,7 @@ class KubernetesResourcesConfig(BaseModel):
     @classmethod
     def validate_resource_values(cls: Any, v: Dict[str, str]) -> Dict[str, str]:
         for key, value in v.items():
-            if key not in ["cpu", "memory"]:
+            if key not in VALID_LLM_PROCESSING_ENV:
                 raise ValueError(f"Invalid resource key: {key}")
             if not re.match(r"^(\d+(\.\d+)?(m|Mi|Gi)?)$", value):
                 raise ValueError(f"Invalid resource value: {value}")
@@ -406,10 +441,9 @@ class MonitoringConfig(BaseModel):
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls: Any, v: str) -> str:
-        valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-        if v not in valid_levels:
+        if v not in VALID_LOG_LEVEL:
             raise ValueError(
-                f"Invalid log level. Must be one of: {', '.join(valid_levels)}"
+                f"Invalid log level. Must be one of: {', '.join(VALID_LOG_LEVEL)}"
             )
         return v
 
@@ -479,7 +513,41 @@ class PyDiagnoConfig(BaseSettings):
         env_file_encoding="utf-8",
         env_prefix="PYDIAGNO_",
         protected_namespaces=(),
+        extra="allow",
     )
+
+    @field_validator("monitoring")
+    @classmethod
+    def validate_monitoring(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(v, dict) and "log_level" in v:
+            if v["log_level"] not in VALID_LOG_LEVEL:
+                raise ValueError(
+                    f"Invalid log level. Must be one of: {', '.join(VALID_LOG_LEVEL)}"
+                )
+        return v
+
+    @field_validator("analysis")
+    @classmethod
+    def validate_analysis(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(v, dict):
+            if "confidence_threshold" in v:
+                if v["confidence_threshold"] < 0 or v["confidence_threshold"] > 1:
+                    raise ValueError("Confidence threshold must be between 0 and 1")
+            if "max_iterations" in v:
+                if v["max_iterations"] < 0:
+                    raise ValueError("Max iterations must be non-negative")
+        return v
+
+    @field_validator("reporting")
+    @classmethod
+    def validate_reporting(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(v, dict) and "format" in v:
+            if v["format"] not in ALLOWED_REPORT_FORMATS:
+                raise ValueError(
+                    f"Invalid report format. Must be one of: "
+                    f"{', '.join(sorted(ALLOWED_REPORT_FORMATS))}"
+                )
+        return v
 
 
 def load_config(config_path: str = "pydiagno_config.yaml") -> PyDiagnoConfig:
@@ -518,14 +586,10 @@ def load_config(config_path: str = "pydiagno_config.yaml") -> PyDiagnoConfig:
 
     except yaml.YAMLError as e:
         logger.error(f"Error parsing YAML configuration: {e}")
-        raise ValueError(f"Invalid YAML in configuration file: {e}")
-
-    except ValueError as e:
-        logger.error(f"Error in configuration data: {e}")
-        raise
+        raise PyDiagnoConfigError(f"Invalid YAML in configuration file: {e}")
     except Exception as e:
         logger.error(f"Unexpected error loading configuration: {e}")
-        raise ValueError(f"Failed to load configuration: {e}")
+        raise PyDiagnoConfigError(f"Failed to load configuration: {e}")
 
 
 # Global configuration object

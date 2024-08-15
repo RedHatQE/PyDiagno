@@ -1,4 +1,5 @@
-from typing import Generator
+import logging
+from typing import Any, Generator, Optional
 
 import pytest
 from _pytest.config import Config
@@ -6,6 +7,11 @@ from _pytest.config.argparsing import Parser
 from _pytest.nodes import Item
 from _pytest.reports import TestReport
 from _pytest.terminal import TerminalReporter
+
+from pydiagno.config import PyDiagnoConfig, load_config
+from pydiagno.exceptions import PyDiagnoAnalysisError, PyDiagnoConfigError
+
+logger = logging.getLogger(__name__)
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -18,21 +24,136 @@ def pytest_addoption(parser: Parser) -> None:
         default=False,
         help="Enable PyDiagno analysis",
     )
+    group.addoption(
+        "--pydiagno-config",
+        action="store",
+        dest="pydiagno_config",
+        default=None,
+        help="Path to custom PyDiagno configuration file",
+    )
+    group.addoption(
+        "--pydiagno-log-level",
+        action="store",
+        dest="pydiagno_log_level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default=None,
+        help="Set the log level for PyDiagno",
+    )
+    group.addoption(
+        "--pydiagno-confidence-threshold",
+        action="store",
+        dest="pydiagno_confidence_threshold",
+        type=float,
+        default=None,
+        help="Set the confidence threshold for PyDiagno analysis",
+    )
+    group.addoption(
+        "--pydiagno-max-iterations",
+        action="store",
+        dest="pydiagno_max_iterations",
+        type=int,
+        default=None,
+        help="Set the maximum number of iterations for PyDiagno analysis",
+    )
+    group.addoption(
+        "--pydiagno-rag-enabled",
+        action="store_true",
+        dest="pydiagno_rag_enabled",
+        default=None,
+        help="Enable Retrieval-Augmented Generation (RAG) feature",
+    )
+    group.addoption(
+        "--pydiagno-report-format",
+        action="store",
+        dest="pydiagno_report_format",
+        choices=["json", "yaml", "text"],
+        default=None,
+        help="Set the format for PyDiagno reports",
+    )
+    group.addoption(
+        "--pydiagno-report-output",
+        action="store",
+        dest="pydiagno_report_output",
+        default=None,
+        help="Set the output path for PyDiagno reports",
+    )
 
 
 def pytest_configure(config: Config) -> None:
     """Configure PyDiagno plugin."""
     config.addinivalue_line("markers", "pydiagno: mark test for PyDiagno analysis")
     if config.getoption("pydiagno"):
+        try:
+            config_path = config.getoption("pydiagno_config")
+            pydiagno_config = load_config(config_path) if config_path else load_config()
+
+            # Override configuration with command line options
+            if config.getoption("pydiagno_log_level"):
+                pydiagno_config.monitoring.log_level = config.getoption(
+                    "pydiagno_log_level"
+                )
+            if config.getoption("pydiagno_confidence_threshold") is not None:
+                pydiagno_config.analysis.confidence_threshold = config.getoption(
+                    "pydiagno_confidence_threshold"
+                )
+            if config.getoption("pydiagno_max_iterations") is not None:
+                pydiagno_config.analysis.max_iterations = config.getoption(
+                    "pydiagno_max_iterations"
+                )
+            if config.getoption("pydiagno_rag_enabled") is not None:
+                pydiagno_config.rag.enabled = config.getoption("pydiagno_rag_enabled")
+            if config.getoption("pydiagno_report_format"):
+                pydiagno_config.reporting.format = config.getoption(
+                    "pydiagno_report_format"
+                )
+            if config.getoption("pydiagno_report_output"):
+                pydiagno_config.reporting.output_path = config.getoption(
+                    "pydiagno_report_output"
+                )
+
+            setattr(config, "pydiagno_config", pydiagno_config)
+        except PyDiagnoConfigError as e:
+            logger.error(f"Failed to load PyDiagno configuration: {e}")
+            raise pytest.UsageError(f"PyDiagno configuration error: {e}")
+
         # TODO: Initialize PyDiagno here if needed
-        pass
     return None
+
+
+def perform_pydiagno_analysis(
+    item: Item, report: TestReport, config: PyDiagnoConfig
+) -> Optional[dict]:
+    """
+    Perform PyDiagno analysis on a test item.
+
+    Args:
+        item: Test item being analyzed.
+        report: Test report for the item.
+        config: PyDiagno configuration.
+
+    Returns:
+        Optional[dict]: Analysis result or None if analysis couldn't be performed.
+
+    Raises:
+        PyDiagnoAnalysisError: If an error occurs during analysis.
+    """
+    # TODO: Implement actual PyDiagno analysis logic here
+    # This is a placeholder implementation
+    try:
+        analysis_result = {
+            "confidence": config.analysis.confidence_threshold,
+            "iterations": config.analysis.max_iterations,
+            "result": "Placeholder analysis result",
+        }
+        return analysis_result
+    except Exception as e:
+        raise PyDiagnoAnalysisError(f"Error during PyDiagno analysis: {e}")
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(
     item: Item, call: pytest.CallInfo[None]
-) -> Generator[None, None, TestReport]:
+) -> Generator[None, None, None]:
     """
     Extend test reports with PyDiagno analysis results.
 
@@ -49,13 +170,28 @@ def pytest_runtest_makereport(
     else:
         report = TestReport.from_item_and_call(item, call)
 
-    if isinstance(report, TestReport) and report.when == "call":
-        marker = item.get_closest_marker("pydiagno")
-        if marker:
-            # TODO: Add logic for PyDiagno analysis here in the future
-            pass
+    pydiagno_enabled = item.config.getoption("pydiagno") or item.get_closest_marker(
+        "pydiagno"
+    )
 
-    return report
+    if isinstance(report, TestReport) and report.when == "call" and pydiagno_enabled:
+        pydiagno_config = getattr(item.config, "pydiagno_config", None)
+        if pydiagno_config:
+            try:
+                analysis_result = perform_pydiagno_analysis(
+                    item, report, pydiagno_config
+                )
+                setattr(report, "pydiagno_result", analysis_result)
+            except PyDiagnoAnalysisError as e:
+                logger.error(f"PyDiagno analysis failed for {item.nodeid}: {e}")
+                setattr(report, "pydiagno_error", str(e))
+        else:
+            logger.warning(
+                f"PyDiagno is enabled for {item.nodeid}, "
+                f"but configuration is missing."
+            )
+
+    yield
 
 
 def pytest_terminal_summary(
@@ -71,5 +207,45 @@ def pytest_terminal_summary(
     """
     if config.getoption("pydiagno"):
         # TODO: Here we'll add the summary of PyDiagno analysis in the future
-        terminalreporter.write_sep("-", "PyDiagno Analysis Summary")
-        terminalreporter.write_line("PyDiagno analysis summary will be added here.")
+        pydiagno_config = getattr(config, "pydiagno_config", None)
+        if pydiagno_config:
+            terminalreporter.write_sep("-", "PyDiagno Analysis Summary")
+            terminalreporter.write_line(
+                f"Analysis confidence threshold: "
+                f"{pydiagno_config.analysis.confidence_threshold:.2f}"
+            )
+            terminalreporter.write_line(
+                f"Maximum analysis iterations: "
+                f"{pydiagno_config.analysis.max_iterations:d}"
+            )
+
+            for report in terminalreporter.stats.get(
+                "passed", []
+            ) + terminalreporter.stats.get("failed", []):
+                if hasattr(report, "pydiagno_result"):
+                    terminalreporter.write_line(f"Test: {report.nodeid}")
+                    terminalreporter.write_line(
+                        f"PyDiagno Result: "
+                        f"{getattr(report, 'pydiagno_result', {}).get('result', 'N/A')}"
+                    )
+                    terminalreporter.write_line("")
+                elif hasattr(report, "pydiagno_error"):
+                    terminalreporter.write_line(f"Test: {report.nodeid}")
+                    terminalreporter.write_line(
+                        f"PyDiagno Error: {getattr(report, 'pydiagno_error', 'N/A')}"
+                    )
+                    terminalreporter.write_line("")
+        else:
+            terminalreporter.write_line("PyDiagno configuration not found.")
+        # TODO: Add more detailed summary based on the new configuration options
+
+
+def pytest_exception_interact(
+    node: Item, call: pytest.CallInfo[Any], report: TestReport
+) -> None:
+    """Handle exceptions during test execution."""
+    if call.excinfo is not None:
+        if isinstance(call.excinfo.value, PyDiagnoConfigError):
+            report.longrepr = f"PyDiagno Configuration Error: {call.excinfo.value}"
+        elif isinstance(call.excinfo.value, PyDiagnoAnalysisError):
+            report.longrepr = f"PyDiagno Analysis Error: {call.excinfo.value}"
