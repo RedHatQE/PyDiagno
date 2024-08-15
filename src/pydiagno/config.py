@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 ALLOWED_REPORT_FORMATS = {"json", "pdf", "html"}
 VALID_LOG_LEVEL = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+VALID_LLM_PROCESSING_ENV = ["cpu", "memory"]
+VALID_LLM_FORMATS = ["onnx", "guff", "ggml"]
+SUPPORTED_DATABASES = ["sqlite", "postgresql"]
 
 def sleep_and_retry(func: Callable[..., T]) -> Callable[..., T]:
     @wraps(func)
@@ -140,7 +143,7 @@ class ModelAbstractionConfig(BaseModel):
     cache_size: int = Field(default=2048, description="Size of model cache in MB")
     default_format: str = Field(default="onnx", description="Default model format")
     supported_formats: List[str] = Field(
-        default=["onnx", "guff", "ggml"], description="List of supported model formats"
+        default=VALID_LLM_FORMATS, description="List of supported model formats"
     )
     model_configurations: List[ModelConfig] = Field(
         default_factory=list, description="Configuration for specific models"
@@ -151,8 +154,9 @@ class ModelAbstractionConfig(BaseModel):
     @field_validator("default_format")
     @classmethod
     def validate_default_format(cls: Any, v: str) -> str:
-        if v not in ["onnx", "guff", "ggml"]:
-            raise ValueError("Invalid model format. Must be one of: onnx, guff, ggml")
+        if v not in VALID_LLM_FORMATS:
+            raise ValueError(f"Invalid model format. Must be one of: "
+                             f"{','.join(VALID_LLM_FORMATS)}")
         return v
 
     @field_validator("cache_size")
@@ -210,7 +214,7 @@ class RAGDatabaseConfig(BaseModel):
     @field_validator("type")
     @classmethod
     def validate_database_type(cls: Any, v: str) -> str:
-        if v not in ["sqlite", "postgresql"]:
+        if v not in SUPPORTED_DATABASES:
             raise ValueError(
                 "Invalid database type. Must be either 'sqlite' or 'postgresql'"
             )
@@ -348,7 +352,7 @@ class KubernetesResourcesConfig(BaseModel):
     @classmethod
     def validate_resource_values(cls: Any, v: Dict[str, str]) -> Dict[str, str]:
         for key, value in v.items():
-            if key not in ["cpu", "memory"]:
+            if key not in VALID_LLM_PROCESSING_ENV:
                 raise ValueError(f"Invalid resource key: {key}")
             if not re.match(r"^(\d+(\.\d+)?(m|Mi|Gi)?)$", value):
                 raise ValueError(f"Invalid resource value: {value}")

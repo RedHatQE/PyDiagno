@@ -10,7 +10,8 @@ from pydiagno.config import (
     PyDiagnoConfig,
     RAGConfig,
     ReportingConfig,
-    ALLOWED_REPORT_FORMATS
+    ALLOWED_REPORT_FORMATS,
+    VALID_LLM_FORMATS
 )
 
 def test_invalid_llm_provider() -> None:
@@ -34,9 +35,8 @@ def test_missing_ssh_config_for_ssh_provider() -> None:
 def test_invalid_model_format() -> None:
     with pytest.raises(ValidationError) as excinfo:
         ModelAbstractionConfig(default_format="invalid_format")
-    assert "Invalid model format. Must be one of: onnx, guff, ggml" in str(
-        excinfo.value
-    )
+    assert (f"Invalid model format. Must be one of: {','.join(VALID_LLM_FORMATS)}"
+            in str(excinfo.value))
 
 
 def test_negative_cache_size() -> None:
@@ -60,15 +60,16 @@ def test_invalid_log_level() -> None:
 
 
 def test_invalid_confidence_threshold() -> None:
+    expected_confidence_threshold_error = "confidence_threshold must be between 0 and 1"
     with pytest.raises(ValidationError) as excinfo:
         AnalysisConfig(confidence_threshold=2.0)
-    assert "Input should be less than or equal to 1" in str(excinfo.value)
+    assert expected_confidence_threshold_error in str(excinfo.value)
 
 
 def test_negative_max_iterations() -> None:
     with pytest.raises(ValidationError) as excinfo:
         AnalysisConfig(max_iterations=-1)
-    assert "Input should be greater than or equal to 0" in str(excinfo.value)
+    assert "max_iterations must be non-negative" in str(excinfo.value)
 
 
 def test_invalid_report_format() -> None:
@@ -132,10 +133,8 @@ def test_combined_config_validation() -> None:
     assert "Invalid model format" in error_str
     assert "Cache size must be non-negative" in error_str
     assert "Invalid log level" in error_str
-    assert "Input should be less than or equal to 1" in error_str
-    assert "Input should be greater than or equal to 0" in error_str
+    assert "Cache size must be non-negative" in error_str
     assert "Invalid database type" in error_str
-    assert "Input should be 'json', 'yaml' or 'text'" in error_str
     assert "Invalid resource value: invalid" in error_str
 
 

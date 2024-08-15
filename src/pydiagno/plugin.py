@@ -191,7 +191,7 @@ def pytest_runtest_makereport(
                 f"but configuration is missing."
             )
 
-    return report
+    yield report
 
 
 def pytest_terminal_summary(

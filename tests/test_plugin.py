@@ -146,9 +146,12 @@ def test_pytest_runtest_makereport(pydiagno_enabled: bool) -> None:
         report = TestReport.from_item_and_call(item, call)
 
         # Call the hook
-        hook = plugin.pytest_runtest_makereport(item, call)
-        next(hook)  # Start the generator
-        final_report = hook.send(None)  # Send None to the generator
+        try:
+            hook = plugin.pytest_runtest_makereport(item, call)
+            next(hook)  # Start the generator
+            final_report = hook.send(None)  # Send None to the generator
+        except StopIteration as exc:
+            final_report = exc.value if exc.value is not None else None
 
         # Simulate the behavior of pytest by setting the result
         if final_report is None:
