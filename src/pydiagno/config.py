@@ -26,6 +26,7 @@ VALID_LLM_PROCESSING_ENV = ["cpu", "memory"]
 VALID_LLM_FORMATS = ["onnx", "guff", "ggml"]
 SUPPORTED_DATABASES = ["sqlite", "postgresql"]
 
+
 def sleep_and_retry(func: Callable[..., T]) -> Callable[..., T]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> T:
@@ -155,8 +156,10 @@ class ModelAbstractionConfig(BaseModel):
     @classmethod
     def validate_default_format(cls: Any, v: str) -> str:
         if v not in VALID_LLM_FORMATS:
-            raise ValueError(f"Invalid model format. Must be one of: "
-                             f"{','.join(VALID_LLM_FORMATS)}")
+            raise ValueError(
+                f"Invalid model format. Must be one of: "
+                f"{','.join(VALID_LLM_FORMATS)}"
+            )
         return v
 
     @field_validator("cache_size")
@@ -203,6 +206,7 @@ class AnalysisConfig(BaseModel):
             raise ValueError("max_iterations must be non-negative")
         return v
 
+
 class RAGDatabaseConfig(BaseModel):
     """Configuration for RAG database."""
 
@@ -243,7 +247,8 @@ class ReportingConfig(BaseModel):
         if v not in ALLOWED_REPORT_FORMATS:
             raise ValueError(
                 f"Invalid report format. Must be one of: "
-                f"{', '.join(sorted(ALLOWED_REPORT_FORMATS))}")
+                f"{', '.join(sorted(ALLOWED_REPORT_FORMATS))}"
+            )
         return v
 
 

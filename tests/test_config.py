@@ -22,14 +22,14 @@ import yaml
 from pydantic import ValidationError
 
 from pydiagno.config import (
+    ALLOWED_REPORT_FORMATS,
+    VALID_LOG_LEVEL,
     KubernetesConfig,
     LLMConfig,
     ModelAbstractionConfig,
     PyDiagnoConfig,
     RAGConfig,
     load_config,
-    VALID_LOG_LEVEL,
-    ALLOWED_REPORT_FORMATS
 )
 from pydiagno.exceptions import PyDiagnoConfigError
 
@@ -155,19 +155,19 @@ def test_default_config() -> None:
 
 def test_config_field_validators() -> None:
 
-    expected_log_level_error = \
+    expected_log_level_error = (
         f"Invalid log level. Must be one of: {', '.join(VALID_LOG_LEVEL)}"
+    )
     expected_confidence_threshold_error = "confidence_threshold must be between 0 and 1"
     allowed_formats_str = ", ".join(sorted(ALLOWED_REPORT_FORMATS))
-    expected_report_format_error = \
+    expected_report_format_error = (
         f"Invalid report format. Must be one of: {allowed_formats_str}"
+    )
 
     with pytest.raises(ValidationError, match=expected_log_level_error):
         PyDiagnoConfig(monitoring={"log_level": "INVALID"})
 
-    with pytest.raises(
-        ValidationError, match=expected_confidence_threshold_error
-    ):
+    with pytest.raises(ValidationError, match=expected_confidence_threshold_error):
         PyDiagnoConfig(analysis={"confidence_threshold": 2.0})
 
     with pytest.raises(ValidationError, match="max_iterations must be non-negative"):

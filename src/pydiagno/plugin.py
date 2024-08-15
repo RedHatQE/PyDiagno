@@ -153,7 +153,7 @@ def perform_pydiagno_analysis(
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(
     item: Item, call: pytest.CallInfo[None]
-) -> Generator[None, None, TestReport]:
+) -> Generator[None, None, None]:
     """
     Extend test reports with PyDiagno analysis results.
 
@@ -191,7 +191,7 @@ def pytest_runtest_makereport(
                 f"but configuration is missing."
             )
 
-    yield report
+    yield
 
 
 def pytest_terminal_summary(

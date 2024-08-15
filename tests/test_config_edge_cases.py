@@ -2,6 +2,8 @@ import pytest
 from pydantic import ValidationError
 
 from pydiagno.config import (
+    ALLOWED_REPORT_FORMATS,
+    VALID_LLM_FORMATS,
     AnalysisConfig,
     KubernetesResourcesConfig,
     LLMConfig,
@@ -10,9 +12,8 @@ from pydiagno.config import (
     PyDiagnoConfig,
     RAGConfig,
     ReportingConfig,
-    ALLOWED_REPORT_FORMATS,
-    VALID_LLM_FORMATS
 )
+
 
 def test_invalid_llm_provider() -> None:
     with pytest.raises(ValidationError) as excinfo:
@@ -35,8 +36,10 @@ def test_missing_ssh_config_for_ssh_provider() -> None:
 def test_invalid_model_format() -> None:
     with pytest.raises(ValidationError) as excinfo:
         ModelAbstractionConfig(default_format="invalid_format")
-    assert (f"Invalid model format. Must be one of: {','.join(VALID_LLM_FORMATS)}"
-            in str(excinfo.value))
+    assert (
+        f"Invalid model format. Must be one of: {','.join(VALID_LLM_FORMATS)}"
+        in str(excinfo.value)
+    )
 
 
 def test_negative_cache_size() -> None:
@@ -74,8 +77,9 @@ def test_negative_max_iterations() -> None:
 
 def test_invalid_report_format() -> None:
     allowed_formats_str = ", ".join(sorted(ALLOWED_REPORT_FORMATS))
-    expected_error_message = \
+    expected_error_message = (
         f"Invalid report format. Must be one of: {allowed_formats_str}"
+    )
 
     match_pattern = f".*{expected_error_message}.*"
 
